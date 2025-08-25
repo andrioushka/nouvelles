@@ -16,7 +16,7 @@
     display: flex;
     max-width: 1000px;
     margin: auto;
-    height: 110vh; /* hauteur fixe pour le scroll */
+    height: 110vh;
   }
 
   /* Livre / zone de texte */
@@ -25,8 +25,8 @@
     padding: 30px;
     border: 1px solid #d4c3a1;
     border-radius: 12px;
-    flex: 1; /* prend tout l'espace horizontal restant */
-    margin-left: 20px; /* espace entre menu et livre */
+    flex: 1;
+    margin-left: 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
@@ -44,7 +44,7 @@
     padding: 10px 15px;
     border-top: 1px solid #d4c3a1;
     border-bottom: 1px solid #d4c3a1;
-    flex: 1; /* fait que la zone prend tout l'espace disponible vertical */
+    flex: 1;
     text-align: justify;
   }
 
@@ -86,10 +86,9 @@
 
   #book h1 {
     text-align: center;
-    margin-bottom: 20px; /* espace sous le titre */
+    margin-bottom: 20px;
     color: #7a7676;
-}
-
+  }
 
   #chapter-menu a {
     display: block;
@@ -103,7 +102,6 @@
   #chapter-menu a:hover {
     background-color: #d4c3a1;
   }
-
 </style>
 </head>
 <body>
@@ -112,7 +110,6 @@
   <!-- Menu à gauche -->
   <div id="chapter-menu">
     <h3>Chapitres</h3>
-    <!-- Les liens seront générés par JS -->
   </div>
 
   <!-- Livre / zone de texte -->
@@ -120,9 +117,7 @@
     <h1>Le Roman du Mois</h1>
     <h2 id="chapter-title">Chapitre 1</h2>
 
-    <div id="content">
-      <!-- Contenu du chapitre -->
-    </div>
+    <div id="content"></div>
 
     <div id="navigation">
       <button onclick="loadChapter(currentChapter - 1)">⬅ Précédent</button>
@@ -132,22 +127,47 @@
 </div>
 
 <script>
+let chapters = [];
 let currentChapter = 1;
-const maxChapters = 30; // nombre total de chapitres
 
 // Convertit *texte* en italique
 function convertItalics(text) {
     return text.replace(/\*(.*?)\*/g, '<em>$1</em>');
 }
 
-// Charge un chapitre
+// Génère le menu depuis chapters.json
+function generateMenu() {
+    fetch("chapters.json")
+        .then(res => res.json())
+        .then(data => {
+            chapters = data;
+            const menu = document.getElementById('chapter-menu');
+            data.forEach((ch, i) => {
+                const link = document.createElement('a');
+                link.href = "#";
+                link.innerText = ch.title;
+                link.dataset.chapter = i + 1;
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadChapter(i + 1);
+                });
+                menu.appendChild(link);
+            });
+            loadChapter(1); // charge le premier chapitre par défaut
+        })
+        .catch(err => {
+            document.getElementById('content').innerText = "Impossible de charger chapters.json.";
+            console.error(err);
+        });
+}
+
 function loadChapter(num) {
-    if (num < 1 || num > maxChapters) return;
+    if (num < 1 || num > chapters.length) return;
     currentChapter = num;
-    fetch(`chapitre${num}.txt`)
-        .then(response => response.text())
+    fetch(chapters[num - 1].file)
+        .then(res => res.text())
         .then(text => {
-            document.getElementById('chapter-title').innerText = "Chapitre " + num;
+            document.getElementById('chapter-title').innerText = chapters[num - 1].title;
             document.getElementById('content').innerHTML = convertItalics(text);
             highlightMenu();
         })
@@ -157,23 +177,6 @@ function loadChapter(num) {
         });
 }
 
-// Génère les liens du menu
-function generateMenu() {
-    const menu = document.getElementById('chapter-menu');
-    for (let i = 1; i <= maxChapters; i++) {
-        const link = document.createElement('a');
-        link.href = "#";
-        link.innerText = "Chapitre " + i;
-        link.dataset.chapter = i;
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            loadChapter(i);
-        });
-        menu.appendChild(link);
-    }
-}
-
-// Met en surbrillance le chapitre courant
 function highlightMenu() {
     const links = document.querySelectorAll('#chapter-menu a');
     links.forEach(link => {
@@ -183,7 +186,6 @@ function highlightMenu() {
 
 // Initialisation
 generateMenu();
-loadChapter(currentChapter);
 </script>
 
 </body>
